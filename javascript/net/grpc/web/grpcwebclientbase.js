@@ -173,6 +173,18 @@ class GrpcWebClientBase {
         this, methodDescriptor.createRequest(requestMessage, metadata)));
   }
 
+  newXhr(isUnary) {
+    const useBinaryChunks = this.chunkedServerStreaming_ && !isUnary;
+    if (this.workerScope_ || useBinaryChunks) {
+      const xmlHttpFactory = new FetchXmlHttpFactory({
+        worker: this.workerScope_,
+        streamBinaryChunks: useBinaryChunks,
+      });
+      return new XhrIo(xmlHttpFactory);
+    }
+    return new XhrIo();
+  }
+
   /**
    * @private
    * @template REQUEST, RESPONSE
@@ -184,7 +196,8 @@ class GrpcWebClientBase {
     const methodDescriptor = request.getMethodDescriptor();
     let path = hostname + methodDescriptor.getName();
 
-    const xhr = this.xhrIo_ ? this.xhrIo_ : new XhrIo();
+    // const xhr = this.xhrIo_ ? this.xhrIo_ : new XhrIo();
+    const xhr = newXhr(true);
     xhr.setWithCredentials(this.withCredentials_);
 
     const genericTransportInterface = {
